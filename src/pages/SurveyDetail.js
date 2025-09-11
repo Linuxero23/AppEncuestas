@@ -14,11 +14,14 @@ const SurveyDetail = () => {
     const fetchData = async () => {
       try {
         const surveyData = await getSurveyById(id);
-        
+
+        // Asegurar que questions sea un array válido
         surveyData.questions =
           typeof surveyData.questions === "string"
             ? JSON.parse(surveyData.questions)
-            : surveyData.questions;
+            : Array.isArray(surveyData.questions)
+            ? surveyData.questions
+            : [];
 
         setSurvey(surveyData);
 
@@ -32,11 +35,10 @@ const SurveyDetail = () => {
     fetchData();
   }, [id]);
 
-  const handleChange = (qId, value) => {
-    setAnswers((prev) => ({ ...prev, [qId]: value }));
+  const handleChange = (qIndex, value) => {
+    setAnswers((prev) => ({ ...prev, [qIndex]: value }));
   };
 
-  // Enviar respuestas
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!user) {
@@ -53,11 +55,17 @@ const SurveyDetail = () => {
     }
   };
 
-  if (!survey) return <p className="text-center text-white">Cargando...</p>;
+  if (!survey) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
+        <p className="text-white text-lg font-semibold">Cargando encuesta...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center p-6">
-      <div className="bg-white shadow-2xl rounded-2xl p-8 w-full max-w-3xl">
+    <div className="flex min-h-screen bg-blue-100 items-center justify-center p-6">
+      <div className="bg-white shadow-2xl rounded-2xl p-10 w-full max-w-4xl">
         <h2 className="text-3xl font-bold text-center text-gray-800 mb-4">
           {survey.title}
         </h2>
@@ -65,8 +73,8 @@ const SurveyDetail = () => {
 
         {submitted ? (
           <div className="text-center">
-            <p className="mb-4 text-lg font-medium text-green-600">
-              ¡Gracias por responder!
+            <p className="mb-6 text-lg font-medium text-green-600">
+              🎉 ¡Gracias por responder esta encuesta!
             </p>
             <div className="flex justify-center gap-4">
               <Link to={`/results/${id}`}>
@@ -83,46 +91,54 @@ const SurveyDetail = () => {
             </div>
           </div>
         ) : (
-          <form onSubmit={handleSubmit}>
-            {survey.questions.map((q) => (
-              <div
-                key={q.id}
-                className="mb-6 p-4 bg-gray-50 rounded-xl shadow-md hover:shadow-lg transition"
-              >
-                <p className="font-semibold text-gray-800 mb-3">{q.text}</p>
-                <div className="flex flex-wrap gap-4">
-                  {q.options.map((opt, idx) => (
-                    <label
-                      key={idx}
-                      className="flex items-center gap-2 cursor-pointer"
-                    >
-                      <input
-                        type="radio"
-                        name={`q-${q.id}`}
-                        value={opt}
-                        onChange={(e) => handleChange(q.id, e.target.value)}
-                        required
-                        className="form-radio text-indigo-600"
-                      />
-                      <span className="text-gray-700">{opt}</span>
-                    </label>
-                  ))}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {survey.questions && survey.questions.length > 0 ? (
+              survey.questions.map((q, idx) => (
+                <div
+                  key={idx}
+                  className="p-6 bg-gray-50 rounded-xl shadow-md hover:shadow-lg transition"
+                >
+                  <p className="font-semibold text-gray-800 mb-4 text-lg">
+                    {q.text}
+                  </p>
+                  <div className="flex flex-col gap-3">
+                    {q.options?.map((opt, i) => (
+                      <label
+                        key={i}
+                        className="flex items-center gap-3 cursor-pointer hover:text-indigo-700"
+                      >
+                        <input
+                          type="radio"
+                          name={`q-${idx}`}
+                          value={opt}
+                          onChange={(e) => handleChange(idx, e.target.value)}
+                          required
+                          className="form-radio text-indigo-600"
+                        />
+                        <span className="text-gray-700">{opt}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-center text-gray-500">
+                No hay preguntas disponibles en esta encuesta.
+              </p>
+            )}
 
             <div className="flex justify-between items-center mt-8">
               <Link
                 to="/"
                 className="px-5 py-2 bg-gray-300 text-gray-800 font-semibold rounded-lg shadow-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1 transition"
               >
-                 Volver
+                Volver
               </Link>
               <button
                 type="submit"
                 className="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1 transition"
               >
-                Enviar respuestas
+                🚀 Enviar respuestas
               </button>
             </div>
           </form>
