@@ -11,50 +11,47 @@ const Surveys = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // 1. Obtener usuario logueado
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+  const fetchData = async () => {
+    try {
+      // 1️⃣ Obtener usuario logueado
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-        // 2. Buscar empresa asociada al usuario
-        const { data: perfil, error: perfilError } = await supabase
-          .from("usuarios")
-          .select("empresa")
-          .eq("email", user.email) // asegúrate que en tu tabla el campo se llama email
-          .single();
+      // 2️⃣ Buscar empresa asociada
+      const { data: perfil, error: perfilError } = await supabase
+        .from("usuarios")
+        .select("empresa")
+        .eq("email", user.email)
+        .single();
+      if (perfilError) throw perfilError;
 
-        if (perfilError) throw perfilError;
+      const empresaId = perfil.empresa;
 
-        const empresaId = perfil.empresa;
+      // 3️⃣ Obtener nombre de empresa
+      const { data: empresa, error: empresaError } = await supabase
+        .from("empresas")
+        .select("nombre")
+        .eq("id", empresaId)
+        .single();
+      if (empresaError) throw empresaError;
 
-        // 3. Obtener nombre de la empresa
-        const { data: empresa, error: empresaError } = await supabase
-          .from("empresas")
-          .select("nombre")
-          .eq("id", empresaId)
-          .single();
+      setEmpresaNombre(empresa.nombre);
 
-        if (empresaError) throw empresaError;
+      // 4️⃣ Obtener encuestas relacionadas a esa empresa
+      const { data: encuestas, error: encuestasError } = await supabase
+        .from("surveys")
+        .select("*")
+        .eq("empresaid", empresaId); // 👈 asegúrate que la columna se llame así
+      if (encuestasError) throw encuestasError;
 
-        setEmpresaNombre(empresa.nombre);
+      setSurveys(encuestas);
+    } catch (err) {
+      console.error("Error cargando encuestas:", err);
+    }
+  };
 
-        // 4. Obtener encuestas relacionadas a esa empresa
-        const { data: encuestas, error: encuestasError } = await supabase
-          .from("surveys")
-          .select("*")
-          .eq("empresa", empresaId); // 👈 columna correcta en surveys
-
-        if (encuestasError) throw encuestasError;
-
-        setSurveys(encuestas);
-      } catch (err) {
-        console.error("Error cargando encuestas:", err);
-      }
-    }; 
-
-    fetchData();
-  }, []);
+  fetchData();
+}, []);
 
   return (
     <div className="flex min-h-screen bg-blue-900 text-gray-100">
