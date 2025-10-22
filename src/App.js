@@ -11,6 +11,7 @@ import SurveyDetail from "./pages/SurveyDetail";
 import Results from "./pages/Results";
 import AdminDashboard from "./pages/AdminDashboard";
 import Auth from "./pages/Auth";
+import Confirmacion from "./pages/Confirmacion";
 
 function App() {
   const [session, setSession] = useState(null);
@@ -64,6 +65,7 @@ function App() {
         {/* 🔒 Si no hay sesión ni admin → ir al login */}
         {!session && !localStorage.getItem("isAdmin") ? (
           <>
+            <Route path="/confirmacion" element={<Confirmacion />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="*" element={<Navigate to="/auth" />} />
           </>

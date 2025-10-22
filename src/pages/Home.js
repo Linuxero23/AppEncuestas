@@ -17,7 +17,8 @@ import "react-circular-progressbar/dist/styles.css";
 
 // Importar Google Fonts directamente
 const fontLink = document.createElement("link");
-fontLink.href = "https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700;900&display=swap";
+fontLink.href =
+  "https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700;900&display=swap";
 fontLink.rel = "stylesheet";
 document.head.appendChild(fontLink);
 
@@ -70,9 +71,21 @@ const Home = () => {
     getProfile();
   }, []);
 
+  // 🔹 Función de cierre de sesión con confirmación y redirección automática
   const handleLogout = async () => {
+    const confirmLogout = window.confirm("¿Seguro que deseas cerrar sesión?");
+    if (!confirmLogout) return;
+
     await supabase.auth.signOut();
-    window.location.reload();
+
+    // Detectar entorno y redirigir
+    if (window.location.hostname === "localhost") {
+      // Entorno de desarrollo (npm start)
+      window.location.href = "/auth";
+    } else {
+      // Entorno de producción (servidor)
+      window.location.href = "https://www.dicihub.org/culturadato/index.html";
+    }
   };
 
   if (loading) {
@@ -92,7 +105,10 @@ const Home = () => {
   ];
 
   return (
-    <div style={{ fontFamily: "Montserrat, sans-serif" }} className="flex flex-col min-h-screen bg-blue-50">
+    <div
+      style={{ fontFamily: "Montserrat, sans-serif" }}
+      className="flex flex-col min-h-screen bg-blue-50"
+    >
       {/* Sidebar */}
       <div
         className={`fixed top-0 left-0 h-full w-64 bg-white shadow-2xl transform transition-transform duration-300 z-50 ${
@@ -102,7 +118,9 @@ const Home = () => {
         <div className="flex items-center justify-between p-4 border-b">
           <div className="flex items-center gap-3">
             <img src={logo} alt="Logo" className="h-10" />
-            <span className="font-bold text-gray-700 text-lg">EncuestasApp</span>
+            <span className="font-bold text-gray-700 text-lg">
+              EncuestasApp
+            </span>
           </div>
           <button
             onClick={() => setMenuOpen(false)}
@@ -160,7 +178,8 @@ const Home = () => {
           />
           <div className="absolute top-0 left-0 w-full h-full bg-black/30 flex items-center justify-center">
             <h2 className="text-4xl font-extrabold text-white text-center px-4">
-              Bienvenido a <span className="bg-white/30 px-2 rounded">EncuestasApp</span>
+              Bienvenido a{" "}
+              <span className="bg-white/30 px-2 rounded">EncuestasApp</span>
             </h2>
           </div>
         </section>
@@ -185,7 +204,9 @@ const Home = () => {
                   })}
                 />
               </div>
-              <h4 className="font-semibold text-gray-700 mb-2">Progreso general</h4>
+              <h4 className="font-semibold text-gray-700 mb-2">
+                Progreso general
+              </h4>
               <p className="text-sm text-gray-500 text-center">
                 Porcentaje de encuestas completadas.
               </p>
@@ -212,7 +233,9 @@ const Home = () => {
                 Encuestas pendientes
               </h4>
               {surveys.length === 0 ? (
-                <p className="text-gray-600 text-center">No tienes encuestas pendientes.</p>
+                <p className="text-gray-600 text-center">
+                  No tienes encuestas pendientes.
+                </p>
               ) : (
                 <ul className="space-y-2 max-h-48 overflow-y-auto">
                   {surveys.map((s) => (

@@ -28,30 +28,30 @@ const Auth = () => {
     setTimeout(() => setMessage(null), 4000);
   };
 
-const handleLogin = async (e) => {
-  e.preventDefault();
+  const handleLogin = async (e) => {
+    e.preventDefault();
 
-  // 🔹 Verificar si es el administrador
-  if (email === "admin@EncuApp.com" && password === "admin123") {
-    localStorage.setItem("isAdmin", "true");
-    showMessage("Inicio de sesión como Administrador ✅");
-    navigate("/admin"); // redirige al panel de administración
-    return;
-  }
+    // 🔹 Verificar si es el administrador
+    if (email === "admin@EncuApp.com" && password === "admin123") {
+      localStorage.setItem("isAdmin", "true");
+      showMessage("Inicio de sesión como Administrador ✅");
+      navigate("/admin"); // redirige al panel de administración
+      return;
+    }
 
-  // 🔹 Usuarios normales con Supabase
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
+    // 🔹 Usuarios normales con Supabase
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-  if (error) {
-    showMessage(error.message, "error");
-  } else {
-    localStorage.removeItem("isAdmin");
-    navigate("/"); // redirige a la página principal
-  }
-};
+    if (error) {
+      showMessage(error.message, "error");
+    } else {
+      localStorage.removeItem("isAdmin");
+      navigate("/"); // redirige a la página principal
+    }
+  };
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -62,7 +62,8 @@ const handleLogin = async (e) => {
       password,
       options: {
         data: { username, empresa_id: empresaId },
-        emailRedirectTo: "http://localhost:5173/confirmacion",
+        // 🔹 Redirección dinámica: funciona en localhost y hosting
+        emailRedirectTo: `${window.location.origin}/confirmacion`,
       },
     });
 
@@ -82,7 +83,10 @@ const handleLogin = async (e) => {
       ]);
 
       if (insertError) {
-        console.error("Error insertando usuario en tabla 'usuarios':", insertError.message);
+        console.error(
+          "Error insertando usuario en tabla 'usuarios':",
+          insertError.message
+        );
       }
     }
 
