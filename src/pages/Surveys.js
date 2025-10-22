@@ -8,50 +8,73 @@ const Surveys = () => {
   const [surveys, setSurveys] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [empresaNombre, setEmpresaNombre] = useState(null);
+  const [progreso, setProgreso] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
-  const fetchData = async () => {
-    try {
-      // 1️⃣ Obtener usuario logueado
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+    const fetchData = async () => {
+      try {
+        // 1️⃣ Obtener usuario logueado
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) return;
 
-      // 2️⃣ Buscar empresa asociada
-      const { data: perfil, error: perfilError } = await supabase
-        .from("usuarios")
-        .select("empresa")
-        .eq("email", user.email)
-        .single();
-      if (perfilError) throw perfilError;
+        // 2️⃣ Buscar empresa asociada
+        const { data: perfil, error: perfilError } = await supabase
+          .from("usuarios")
+          .select("empresa")
+          .eq("email", user.email)
+          .single();
+        if (perfilError) throw perfilError;
 
-      const empresaId = perfil.empresa;
+        const empresaId = perfil.empresa;
 
-      // 3️⃣ Obtener nombre de empresa
-      const { data: empresa, error: empresaError } = await supabase
-        .from("empresas")
-        .select("nombre")
-        .eq("id", empresaId)
-        .single();
-      if (empresaError) throw empresaError;
+        // 3️⃣ Obtener nombre de la empresa
+        const { data: empresa, error: empresaError } = await supabase
+          .from("empresas")
+          .select("nombre")
+          .eq("id", empresaId)
+          .single();
+        if (empresaError) throw empresaError;
 
-      setEmpresaNombre(empresa.nombre);
+        setEmpresaNombre(empresa.nombre);
 
-      // 4️⃣ Obtener encuestas relacionadas a esa empresa
-      const { data: encuestas, error: encuestasError } = await supabase
-        .from("surveys")
-        .select("*")
-        .eq("empresaid", empresaId); // 👈 asegúrate que la columna se llame así
-      if (encuestasError) throw encuestasError;
+        // 4️⃣ Obtener todas las encuestas de esa empresa
+        const { data: encuestas, error: encuestasError } = await supabase
+          .from("surveys")
+          .select("*")
+          .eq("empresaid", empresaId);
+        if (encuestasError) throw encuestasError;
 
-      setSurveys(encuestas);
-    } catch (err) {
-      console.error("Error cargando encuestas:", err);
-    }
-  };
+        // 5️⃣ Obtener encuestas ya respondidas por el usuario
+        const { data: respuestas, error: respuestasError } = await supabase
+          .from("survey_responses")
+          .select("survey_id")
+          .eq("user_id", user.id);
+        if (respuestasError) throw respuestasError;
 
-  fetchData();
-}, []);
+        const encuestasRespondidas = respuestas.map((r) => r.survey_id);
+
+        // 6️⃣ Filtrar encuestas disponibles
+        const encuestasDisponibles = encuestas.filter(
+          (e) => !encuestasRespondidas.includes(e.id)
+        );
+
+        setSurveys(encuestasDisponibles);
+
+        // 7️⃣ Calcular progreso
+        const progresoCalculado = Math.round(
+          (encuestasRespondidas.length / encuestas.length) * 100
+        );
+        setProgreso(progresoCalculado);
+      } catch (err) {
+        console.error("Error cargando encuestas:", err);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   return (
     <div className="flex min-h-screen bg-blue-900 text-gray-100">
@@ -69,7 +92,6 @@ const Surveys = () => {
           />
           <p className="font-semibold text-gray-700">
             👋 Bienvenido {empresaNombre || ""}
-            
           </p>
           <button
             onClick={() => setMenuOpen(false)}
@@ -114,10 +136,32 @@ const Surveys = () => {
             Encuestas disponibles {empresaNombre && `para ${empresaNombre}`}
           </h2>
 
+          {/* 🔵 Barra de progreso */}
+          <div className="w-full bg-gray-200 rounded-full h-4 mb-6">
+            <div
+              className="bg-green-500 h-4 rounded-full transition-all duration-700"
+              style={{ width: `${progreso}%` }}
+            ></div>
+          </div>
+          <p className="text-center text-gray-700 font-semibold mb-6">
+            Progreso: {progreso}%
+          </p>
+
+          {/* 🎉 Mensaje de completado */}
+          {progreso === 100 && (
+            <p className="text-green-600 text-center text-lg font-semibold mt-4">
+              🎉 ¡Has completado todas las encuestas!
+            </p>
+          )}
+
+          {/* 📋 Lista de encuestas disponibles */}
           {surveys.length === 0 ? (
             <p className="text-center text-gray-600 mb-6">
               No hay encuestas disponibles para{" "}
-              <span className="font-semibold">{empresaNombre || "tu empresa"}</span>.
+              <span className="font-semibold">
+                {empresaNombre || "tu empresa"}
+              </span>
+              .
             </p>
           ) : (
             <ul className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">

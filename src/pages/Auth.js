@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
-import logo from "../assets/logo.png"; // 👈 tu logo aquí
+import logo from "../assets/logo.png";
+import videoauth from "../assets/videoauth.mp4"; // Importamos el video
 
 const Auth = () => {
   const [mode, setMode] = useState("login");
@@ -13,7 +14,6 @@ const Auth = () => {
   const [message, setMessage] = useState(null);
   const navigate = useNavigate();
 
-  // 🔹 Cargar empresas desde Supabase
   useEffect(() => {
     const fetchEmpresas = async () => {
       const { data, error } = await supabase.from("empresas").select("*");
@@ -23,27 +23,36 @@ const Auth = () => {
     fetchEmpresas();
   }, []);
 
-  // 🔹 Mostrar mensajes con estilo
   const showMessage = (text, type = "success") => {
     setMessage({ text, type });
     setTimeout(() => setMessage(null), 4000);
   };
 
-  // 🔹 Iniciar sesión
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) {
-      showMessage(error.message, "error");
-    } else {
-      navigate("/");
-    }
-  };
+const handleLogin = async (e) => {
+  e.preventDefault();
 
-  // 🔹 Registrar usuario (sin insertar manualmente en la tabla `usuarios`)
+  // 🔹 Verificar si es el administrador
+  if (email === "admin@EncuApp.com" && password === "admin123") {
+    localStorage.setItem("isAdmin", "true");
+    showMessage("Inicio de sesión como Administrador ✅");
+    navigate("/admin"); // redirige al panel de administración
+    return;
+  }
+
+  // 🔹 Usuarios normales con Supabase
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error) {
+    showMessage(error.message, "error");
+  } else {
+    localStorage.removeItem("isAdmin");
+    navigate("/"); // redirige a la página principal
+  }
+};
+
   const handleRegister = async (e) => {
     e.preventDefault();
     setMessage(null);
@@ -62,7 +71,21 @@ const Auth = () => {
       return;
     }
 
-    // 👇 El trigger en la base de datos crea el registro en `usuarios`
+    if (data?.user) {
+      const { error: insertError } = await supabase.from("usuarios").insert([
+        {
+          email: email,
+          nombre: username,
+          empresa: empresaId,
+          auth_id: data.user.id,
+        },
+      ]);
+
+      if (insertError) {
+        console.error("Error insertando usuario en tabla 'usuarios':", insertError.message);
+      }
+    }
+
     showMessage(
       "¡Registro exitoso! Revisa tu correo para confirmar tu cuenta.",
       "success"
@@ -70,7 +93,6 @@ const Auth = () => {
     setMode("login");
   };
 
-  // 🔹 Recuperar contraseña
   const handleForgotPassword = async (e) => {
     e.preventDefault();
     const { error } = await supabase.auth.resetPasswordForEmail(email);
@@ -85,10 +107,22 @@ const Auth = () => {
     }
   };
 
-  // 🔹 UI
   return (
-    <div className="flex items-center justify-center min-h-screen bg-blue-100 px-4">
-      <div className="bg-white shadow-xl rounded-2xl p-8 w-full max-w-md relative">
+    <div className="relative flex items-center justify-center min-h-screen">
+      {/* Video de fondo */}
+      <video
+        className="absolute top-0 left-0 w-full h-full object-cover"
+        src={videoauth}
+        autoPlay
+        loop
+        muted
+      />
+
+      {/* Overlay oscuro para mejorar contraste */}
+      <div className="absolute top-0 left-0 w-full h-full bg-black/40"></div>
+
+      {/* Formulario */}
+      <div className="relative z-10 bg-white shadow-xl rounded-2xl p-8 w-full max-w-md">
         {/* Logo */}
         <div className="absolute top-4 left-4">
           <img src={logo} alt="Logo" className="h-10" />
@@ -113,7 +147,6 @@ const Auth = () => {
           {mode === "reset" && "Recuperar Contraseña"}
         </h1>
 
-        {/* Formulario */}
         <form
           onSubmit={
             mode === "login"
@@ -153,7 +186,6 @@ const Auth = () => {
                 className="w-full px-4 py-2 mb-4 border rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
                 required
               />
-
               <select
                 value={empresaId}
                 onChange={(e) => setEmpresaId(e.target.value)}

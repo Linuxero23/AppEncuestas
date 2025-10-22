@@ -50,8 +50,8 @@ const SurveyDetail = () => {
       await submitSurveyResponse(id, user.id, answers);
       setSubmitted(true);
     } catch (err) {
-      console.error("Error guardando respuestas:", err);
-      alert("Error al guardar tus respuestas.");
+      console.error("🔥 Error detallado al guardar respuestas:", err);
+      alert("Error al guardar tus respuestas: " + (err.message || JSON.stringify(err)));
     }
   };
 
@@ -76,19 +76,12 @@ const SurveyDetail = () => {
             <p className="mb-6 text-lg font-medium text-green-600">
               🎉 ¡Gracias por responder esta encuesta!
             </p>
-            <div className="flex justify-center gap-4">
-              <Link to={`/results/${id}`}>
-                <button className="px-5 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1 transition">
-                  Ver resultados
-                </button>
-              </Link>
-              <Link
-                to="/"
-                className="px-5 py-2 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1 transition"
-              >
-                Volver al inicio
-              </Link>
-            </div>
+            <Link
+              to="/"
+              className="px-5 py-2 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1 transition"
+            >
+              Volver al inicio
+            </Link>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6">

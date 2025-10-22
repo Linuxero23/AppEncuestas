@@ -36,19 +36,28 @@ export async function deleteSurvey(id) {
 
 // Guardar respuesta de usuario
 export async function submitSurveyResponse(surveyId, userId, answers) {
-  const { data, error } = await supabase
-    .from("survey_responses")
-    .insert([
-      {
-        survey_id: surveyId,
-        user_id: userId,
-        answers: answers, 
-      },
-    ])
-    .select();
+  try {
+    // 💡 Calcula el puntaje (por ahora: 1 punto por pregunta respondida)
+    const totalScore = Object.keys(answers).length;
 
-  if (error) throw error;
-  return data[0];
+    const { data, error } = await supabase
+      .from("survey_responses")
+      .insert([
+        {
+          survey_id: surveyId,
+          user_id: userId,
+          answers: answers,
+          score: totalScore, // 👈 guarda el puntaje
+        },
+      ])
+      .select();
+
+    if (error) throw error;
+    return data[0];
+  } catch (err) {
+    console.error("🔥 Error guardando respuesta:", err);
+    throw err;
+  }
 }
 
 export async function getResponsesBySurvey(surveyId) {

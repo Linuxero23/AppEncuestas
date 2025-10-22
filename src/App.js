@@ -9,49 +9,84 @@ import SurveyBuilder from "./pages/SurveyBuilder";
 import DataCultureSurvey from "./data/dataCultureSurvey";
 import SurveyDetail from "./pages/SurveyDetail";
 import Results from "./pages/Results";
-
+import AdminDashboard from "./pages/AdminDashboard";
 import Auth from "./pages/Auth";
 
 function App() {
   const [session, setSession] = useState(null);
+  const [userRole, setUserRole] = useState(null);
 
   useEffect(() => {
-    // Obtener sesión actual
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
+    const getSessionAndRole = async () => {
+      // 🔹 Verificar si hay sesión activa de Supabase
+      const { data } = await supabase.auth.getSession();
+      const currentSession = data.session;
+      setSession(currentSession);
+
+      // 🔹 Si hay sesión, intentar obtener el rol desde la BD
+      if (currentSession?.user?.email) {
+        const { data: perfil, error } = await supabase
+          .from("usuarios")
+          .select("rol")
+          .eq("email", currentSession.user.email)
+          .single();
+
+        if (!error && perfil) {
+          setUserRole(perfil.rol);
+        }
+      }
+
+      // 🔹 Verificar si es el admin manual (guardado en localStorage)
+      const isAdmin = localStorage.getItem("isAdmin");
+      if (isAdmin) {
+        setUserRole("admin");
+      }
+    };
+
+    getSessionAndRole();
+
+    // Escuchar cambios en la sesión de Supabase
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (!session && !localStorage.getItem("isAdmin")) {
+        setUserRole(null);
+      }
     });
 
-    // Escuchar cambios de sesión
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-      }
-    );
-
     return () => {
-      subscription.unsubscribe();
+      listener.subscription.unsubscribe();
     };
   }, []);
 
   return (
     <Router>
       <Routes>
-        {!session ? (
+        {/* 🔒 Si no hay sesión ni admin → ir al login */}
+        {!session && !localStorage.getItem("isAdmin") ? (
           <>
-            {/* Si no hay sesión, mandar siempre a Auth */}
-            <Route path="/" element={<Navigate to="/auth" />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="*" element={<Navigate to="/auth" />} />
           </>
         ) : (
           <>
-            <Route path="/" element={<Home />} />
-            <Route path="/surveys" element={<Surveys />} />
-            <Route path="/builder" element={<SurveyBuilder />} />
-            <Route path="/survey/:id" element={<SurveyDetail />} />
-            <Route path="/results/:id" element={<Results />} />
-            <Route path="/data-culture" element={<DataCultureSurvey />} />
-            <Route path="*" element={<Navigate to="/" />} />
+            {/* 👑 Si es administrador */}
+            {userRole === "admin" ? (
+              <>
+                <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="*" element={<Navigate to="/admin" />} />
+              </>
+            ) : (
+              <>
+                {/* 👤 Usuario normal */}
+                <Route path="/" element={<Home />} />
+                <Route path="/surveys" element={<Surveys />} />
+                <Route path="/builder" element={<SurveyBuilder />} />
+                <Route path="/survey/:id" element={<SurveyDetail />} />
+                <Route path="/results/:id" element={<Results />} />
+                <Route path="/data-culture" element={<DataCultureSurvey />} />
+                <Route path="*" element={<Navigate to="/" />} />
+              </>
+            )}
           </>
         )}
       </Routes>
