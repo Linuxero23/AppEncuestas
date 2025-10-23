@@ -15,7 +15,7 @@ const SurveyDetail = () => {
       try {
         const surveyData = await getSurveyById(id);
 
-        // Asegurar que questions sea un array válido
+        // Validar formato del JSON
         surveyData.questions =
           typeof surveyData.questions === "string"
             ? JSON.parse(surveyData.questions)
@@ -35,8 +35,23 @@ const SurveyDetail = () => {
     fetchData();
   }, [id]);
 
-  const handleChange = (qIndex, value) => {
-    setAnswers((prev) => ({ ...prev, [qIndex]: value }));
+  // ✅ Manejo de respuestas (soporta radio y checkbox)
+  const handleChange = (qIndex, value, isMultiSelect) => {
+    setAnswers((prev) => {
+      const prevAnswer = prev[qIndex] || [];
+
+      if (isMultiSelect) {
+        // Si ya estaba seleccionada, la quitamos; si no, la agregamos
+        if (prevAnswer.includes(value)) {
+          return { ...prev, [qIndex]: prevAnswer.filter((v) => v !== value) };
+        } else {
+          return { ...prev, [qIndex]: [...prevAnswer, value] };
+        }
+      } else {
+        // Radio → solo una opción
+        return { ...prev, [qIndex]: [value] };
+      }
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -78,7 +93,7 @@ const SurveyDetail = () => {
             </p>
             <Link
               to="/"
-              className="px-5 py-2 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1 transition"
+              className="px-5 py-2 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition"
             >
               Volver al inicio
             </Link>
@@ -101,14 +116,16 @@ const SurveyDetail = () => {
                         className="flex items-center gap-3 cursor-pointer hover:text-indigo-700"
                       >
                         <input
-                          type="radio"
+                          type={q.multi_select ? "checkbox" : "radio"}
                           name={`q-${idx}`}
-                          value={opt}
-                          onChange={(e) => handleChange(idx, e.target.value)}
-                          required
-                          className="form-radio text-indigo-600"
+                          value={opt.text}
+                          checked={answers[idx]?.includes(opt.text) || false}
+                          onChange={() =>
+                            handleChange(idx, opt.text, q.multi_select)
+                          }
+                          className="accent-indigo-600 w-5 h-5"
                         />
-                        <span className="text-gray-700">{opt}</span>
+                        <span className="text-gray-700">{opt.text}</span>
                       </label>
                     ))}
                   </div>
@@ -123,13 +140,13 @@ const SurveyDetail = () => {
             <div className="flex justify-between items-center mt-8">
               <Link
                 to="/"
-                className="px-5 py-2 bg-gray-300 text-gray-800 font-semibold rounded-lg shadow-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1 transition"
+                className="px-5 py-2 bg-gray-300 text-gray-800 font-semibold rounded-lg shadow-md hover:bg-gray-400 transition"
               >
                 Volver
               </Link>
               <button
                 type="submit"
-                className="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1 transition"
+                className="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition"
               >
                 🚀 Enviar respuestas
               </button>

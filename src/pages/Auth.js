@@ -63,7 +63,7 @@ const Auth = () => {
       options: {
         data: { username, empresa_id: empresaId },
         // 🔹 Redirección dinámica: funciona en localhost y hosting
-        emailRedirectTo: `${window.location.origin}/confirmacion`,
+        emailRedirectTo: `https://www.dicihub.org/culturadato/AppEncuestas`,
       },
     });
 
