@@ -1,3 +1,4 @@
+// src/App.js
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
@@ -12,19 +13,23 @@ import Results from "./pages/Results";
 import AdminDashboard from "./pages/AdminDashboard";
 import Auth from "./pages/Auth";
 import Confirmacion from "./pages/Confirmacion";
+import AdminResults from "./pages/AdminResults";
 
 function App() {
   const [session, setSession] = useState(null);
   const [userRole, setUserRole] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const getSessionAndRole = async () => {
-      // 🔹 Verificar si hay sesión activa de Supabase
+      setLoading(true);
+
+      // 🔹 Obtener sesión activa de Supabase
       const { data } = await supabase.auth.getSession();
       const currentSession = data.session;
       setSession(currentSession);
 
-      // 🔹 Si hay sesión, intentar obtener el rol desde la BD
+      // 🔹 Si hay usuario logeado → obtener rol desde tabla usuarios
       if (currentSession?.user?.email) {
         const { data: perfil, error } = await supabase
           .from("usuarios")
@@ -34,23 +39,25 @@ function App() {
 
         if (!error && perfil) {
           setUserRole(perfil.rol);
+        } else {
+          setUserRole("user"); // valor por defecto si no hay rol
         }
+      } else {
+        setUserRole(null);
       }
 
-      // 🔹 Verificar si es el admin manual (guardado en localStorage)
-      const isAdmin = localStorage.getItem("isAdmin");
-      if (isAdmin) {
-        setUserRole("admin");
-      }
+      setLoading(false);
     };
 
     getSessionAndRole();
 
-    // Escuchar cambios en la sesión de Supabase
+    // 🔹 Escuchar cambios de sesión en Supabase
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      if (!session && !localStorage.getItem("isAdmin")) {
+      if (!session) {
         setUserRole(null);
+      } else {
+        getSessionAndRole();
       }
     });
 
@@ -59,27 +66,36 @@ function App() {
     };
   }, []);
 
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen text-xl font-semibold">
+        Cargando...
+      </div>
+    );
+  }
+
   return (
     <Router>
       <Routes>
-        {/* 🔒 Si no hay sesión ni admin → ir al login */}
-        {!session && !localStorage.getItem("isAdmin") ? (
+        {/* 🔒 Si no hay sesión → ir al login */}
+        {!session ? (
           <>
-            <Route path="/confirmacion" element={<Confirmacion />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/confirmacion" element={<Confirmacion />} />
             <Route path="*" element={<Navigate to="/auth" />} />
           </>
         ) : (
           <>
-            {/* 👑 Si es administrador */}
+            {/* 👑 Rutas de administrador */}
             {userRole === "admin" ? (
               <>
                 <Route path="/admin" element={<AdminDashboard />} />
-                <Route path="*" element={<Navigate to="/admin" />} />
+                <Route path="/adminResults" element={<AdminResults />} />
+                <Route path="*" element={<Navigate to="/adminResults" />} />
               </>
             ) : (
               <>
-                {/* 👤 Usuario normal */}
+                {/* 👤 Rutas de usuario normal */}
                 <Route path="/" element={<Home />} />
                 <Route path="/surveys" element={<Surveys />} />
                 <Route path="/builder" element={<SurveyBuilder />} />

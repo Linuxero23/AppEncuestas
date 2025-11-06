@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 import logo from "../assets/logo.png";
-import videoauth from "../assets/videoauth.mp4"; // Importamos el video
+import videoauth from "../assets/videoauth.mp4"; // Video de fondo
 
 const Auth = () => {
   const [mode, setMode] = useState("login");
@@ -31,15 +31,18 @@ const Auth = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
 
-    // 🔹 Verificar si es el administrador
-    if (email === "admin@EncuApp.com" && password === "admin123") {
+    // 🔹 Caso especial: admin local (sin Supabase)
+    if (
+      (email === "admin" && password === "admin1234") ||
+      (email === "admin@EncuApp.com" && password === "admin123")
+    ) {
       localStorage.setItem("isAdmin", "true");
       showMessage("Inicio de sesión como Administrador ✅");
-      navigate("/admin"); // redirige al panel de administración
+      navigate("/adminResults"); // 👈 redirige al panel de resultados
       return;
     }
 
-    // 🔹 Usuarios normales con Supabase
+    // 🔹 Login normal con Supabase
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -62,7 +65,6 @@ const Auth = () => {
       password,
       options: {
         data: { username, empresa_id: empresaId },
-        // 🔹 Redirección dinámica: funciona en localhost y hosting
         emailRedirectTo: `https://www.dicihub.org/culturadato/AppEncuestas`,
       },
     });
@@ -122,10 +124,10 @@ const Auth = () => {
         muted
       />
 
-      {/* Overlay oscuro para mejorar contraste */}
+      {/* Overlay oscuro */}
       <div className="absolute top-0 left-0 w-full h-full bg-black/40"></div>
 
-      {/* Formulario */}
+      {/* Contenedor del formulario */}
       <div className="relative z-10 bg-white shadow-xl rounded-2xl p-8 w-full max-w-md">
         {/* Logo */}
         <div className="absolute top-4 left-4">

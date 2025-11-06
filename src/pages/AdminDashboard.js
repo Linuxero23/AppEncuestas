@@ -1,258 +1,96 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
-import { Link } from "react-router-dom";
-import logo from "../assets/logo.png";
-import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
-import { CheckCircle, Clock } from "lucide-react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  ResponsiveContainer,
-  Tooltip,
-} from "recharts";
-import "react-circular-progressbar/dist/styles.css";
 
-const Home = () => {
-  const [profile, setProfile] = useState(null);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [surveys, setSurveys] = useState([]);
-  const [surveysRespondidas, setSurveysRespondidas] = useState([]);
-  const [progreso, setProgreso] = useState(0);
-  const [loading, setLoading] = useState(true);
+const AdminDashboard = () => {
+  const [responses, setResponses] = useState([]);
+  const [ranking, setRanking] = useState([]);
 
   useEffect(() => {
-    const getProfile = async () => {
-      setLoading(true);
-      const { data } = await supabase.auth.getUser();
-      if (data?.user) {
-        const { data: perfil } = await supabase
-          .from("usuarios")
-          .select("nombre, empresa")
-          .eq("email", data.user.email)
-          .single();
+    const fetchData = async () => {
+      const { data: surveyData, error: surveyError } = await supabase
+        .from("survey_responses")
+        .select("*");
 
-        if (perfil) {
-          setProfile(perfil);
+      const { data: rankingData, error: rankingError } = await supabase
+        .from("ranking_empresas")
+        .select("*");
 
-          const { data: encuestas } = await supabase
-            .from("surveys")
-            .select("*")
-            .eq("empresaid", perfil.empresa);
-
-          const { data: respuestas } = await supabase
-            .from("survey_responses")
-            .select("survey_id")
-            .eq("user_id", data.user.id);
-
-          const respondedIds = respuestas.map((r) => r.survey_id);
-          setSurveysRespondidas(
-            encuestas.filter((e) => respondedIds.includes(e.id))
-          );
-          setSurveys(encuestas.filter((e) => !respondedIds.includes(e.id)));
-
-          const progressCalc = encuestas.length
-            ? Math.round((respondedIds.length / encuestas.length) * 100)
-            : 0;
-          setProgreso(progressCalc);
-        }
-      }
-      setLoading(false);
+      if (!surveyError) setResponses(surveyData);
+      if (!rankingError) setRanking(rankingData);
     };
-    getProfile();
+
+    fetchData();
   }, []);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    window.location.reload();
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen text-gray-700 text-xl">
-        Cargando...
-      </div>
-    );
-  }
-
-  // Datos para mini gráfico de barras
-  const data = [
-    { name: "Contestadas", count: surveysRespondidas.length },
-    { name: "Pendientes", count: surveys.length },
-  ];
-
   return (
-    <div className="flex min-h-screen bg-gradient-to-b from-blue-50 to-blue-100">
-      {/* Sidebar */}
-      <div
-        className={`fixed top-0 left-0 h-full w-64 bg-white shadow-2xl transform transition-transform duration-300 z-50 ${
-          menuOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        <div className="flex items-center justify-between p-4 border-b">
-          <div className="flex items-center gap-3">
-            <img src={logo} alt="Logo" className="h-10" />
-            <span className="font-bold text-gray-700 text-lg">EncuestasApp</span>
-          </div>
-          <button
-            onClick={() => setMenuOpen(false)}
-            className="text-gray-500 hover:text-gray-700 font-bold"
-          >
-            ✕
-          </button>
-        </div>
-        <div className="p-4">
-          <p className="font-semibold text-gray-600 mb-6">
-            👋 Bienvenido {profile?.nombre || ""}
-          </p>
-          <nav className="flex flex-col gap-3">
-            <Link
-              to="/surveys"
-              className="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition transform hover:scale-105"
-              onClick={() => setMenuOpen(false)}
-            >
-              📋 Ver encuestas
-            </Link>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition transform hover:scale-105"
-            >
-              🚪 Cerrar sesión
-            </button>
-          </nav>
-        </div>
-      </div>
+    <div className="p-8 bg-gray-50 min-h-screen">
+      <h1 className="text-3xl font-bold mb-6 text-center text-blue-800">
+        Panel del Administrador
+      </h1>
 
-      {/* Contenido principal */}
-      <div className="flex-1 flex flex-col">
-        {/* Header con logo fijo */}
-        <header className="flex items-center justify-between p-4 bg-white shadow-md sticky top-0 z-30">
-          <div className="flex items-center gap-3">
-            <img src={logo} alt="Logo" className="h-10" />
-            <h1 className="text-xl font-bold text-gray-700">EncuestasApp</h1>
-          </div>
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition transform hover:scale-105"
-          >
-            ☰
-          </button>
-        </header>
-
-        <main className="flex-1 overflow-y-auto p-6 space-y-16">
-          {/* Bienvenida */}
-          <section className="text-center">
-            <h2 className="text-4xl font-extrabold text-gray-800 mb-4">
-              Bienvenido a <span className="text-blue-600">EncuestasApp</span>
-            </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Responde encuestas de manera{" "}
-              <span className="font-semibold">fácil</span> y{" "}
-              <span className="font-semibold">rápida</span>.
-            </p>
-          </section>
-
-          {/* Estado de encuestas */}
-          <section>
-            <h3 className="text-2xl font-bold text-gray-800 mb-6 text-center">
-              Estado de tus encuestas
-            </h3>
-            <div className="grid md:grid-cols-3 gap-6">
-              {/* Progreso general */}
-              <div className="bg-gradient-to-br from-green-100 to-green-200 p-6 rounded-xl shadow-lg flex flex-col items-center hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
-                <div className="w-32 h-32 mb-4">
-                  <CircularProgressbar
-                    value={progreso}
-                    text={`${progreso}%`}
-                    styles={buildStyles({
-                      pathTransitionDuration: 1,
-                      pathColor: "#16a34a",
-                      textColor: "#1f2937",
-                      trailColor: "#d1d5db",
-                    })}
-                  />
-                </div>
-                <h4 className="font-semibold text-gray-700 mb-2">Progreso general</h4>
-                <p className="text-sm text-gray-500 text-center">
-                  Porcentaje de encuestas completadas.
-                </p>
-              </div>
-
-              {/* Mini gráfico de barras */}
-              <div className="bg-white p-6 rounded-xl shadow-lg hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
-                <h4 className="font-semibold text-gray-700 mb-4 text-center">
-                  Encuestas en gráfico
-                </h4>
-                <ResponsiveContainer width="100%" height={150}>
-                  <BarChart data={data}>
-                    <XAxis dataKey="name" />
-                    <YAxis allowDecimals={false} />
-                    <Tooltip />
-                    <Bar dataKey="count" fill="#4ade80" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-
-              {/* Encuestas pendientes y contestadas */}
-              <div className="bg-white p-6 rounded-xl shadow-lg hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
-                <h4 className="font-semibold text-gray-700 mb-4 text-center">
-                  Encuestas pendientes
-                </h4>
-                {surveys.length === 0 ? (
-                  <p className="text-gray-600 text-center">No tienes encuestas pendientes.</p>
-                ) : (
-                  <ul className="space-y-2 max-h-48 overflow-y-auto">
-                    {surveys.map((s) => (
-                      <li
-                        key={s.id}
-                        className="flex items-center gap-2 bg-gray-50 p-2 rounded-md shadow-sm hover:bg-yellow-50 transition"
-                      >
-                        <Clock className="text-yellow-500" /> {s.title}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
-          </section>
-
-          {/* Lista de encuestas contestadas */}
-          <section>
-            <h4 className="font-semibold text-gray-700 mb-4 text-center">
-              Encuestas contestadas
-            </h4>
-            {surveysRespondidas.length === 0 ? (
-              <p className="text-gray-600 text-center mb-4">
-                Aún no has contestado ninguna encuesta.
-              </p>
+      <section className="mb-8 bg-white p-6 rounded-lg shadow">
+        <h2 className="text-2xl font-semibold mb-4">Respuestas de Encuestas</h2>
+        <table className="w-full border-collapse border border-gray-300">
+          <thead>
+            <tr className="bg-gray-200">
+              <th className="border px-4 py-2">ID</th>
+              <th className="border px-4 py-2">Usuario</th>
+              <th className="border px-4 py-2">Encuesta</th>
+              <th className="border px-4 py-2">Fecha</th>
+            </tr>
+          </thead>
+          <tbody>
+            {responses.length > 0 ? (
+              responses.map((r) => (
+                <tr key={r.id}>
+                  <td className="border px-4 py-2">{r.id}</td>
+                  <td className="border px-4 py-2">{r.user_id}</td>
+                  <td className="border px-4 py-2">{r.survey_id}</td>
+                  <td className="border px-4 py-2">
+                    {new Date(r.created_at).toLocaleDateString()}
+                  </td>
+                </tr>
+              ))
             ) : (
-              <ul className="space-y-2 max-h-48 overflow-y-auto">
-                {surveysRespondidas.map((s) => (
-                  <li
-                    key={s.id}
-                    className="flex items-center gap-2 bg-gray-50 p-2 rounded-md shadow-sm hover:bg-green-50 transition"
-                  >
-                    <CheckCircle className="text-green-500" /> {s.title}
-                  </li>
-                ))}
-              </ul>
+              <tr>
+                <td colSpan="4" className="text-center py-4">
+                  No hay respuestas registradas.
+                </td>
+              </tr>
             )}
-          </section>
+          </tbody>
+        </table>
+      </section>
 
-          {/* Botón principal */}
-          <section className="text-center mt-12">
-            <Link
-              to="/surveys"
-              className="px-10 py-4 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg shadow-lg transform hover:scale-105 transition duration-200 animate-pulse"
-            >
-              🚀 Responder encuestas
-            </Link>
-          </section>
-        </main>
-      </div>
+      <section className="bg-white p-6 rounded-lg shadow">
+        <h2 className="text-2xl font-semibold mb-4">Ranking de Empresas</h2>
+        <table className="w-full border-collapse border border-gray-300">
+          <thead>
+            <tr className="bg-gray-200">
+              <th className="border px-4 py-2">Empresa</th>
+              <th className="border px-4 py-2">Puntaje</th>
+            </tr>
+          </thead>
+          <tbody>
+            {ranking.length > 0 ? (
+              ranking.map((emp) => (
+                <tr key={emp.id}>
+                  <td className="border px-4 py-2">{emp.nombre}</td>
+                  <td className="border px-4 py-2">{emp.puntaje}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="2" className="text-center py-4">
+                  No hay datos de ranking disponibles.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </section>
     </div>
   );
 };
 
-export default Home;
+export default AdminDashboard;
